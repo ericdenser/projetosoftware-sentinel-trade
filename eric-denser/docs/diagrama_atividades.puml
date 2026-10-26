@@ -1,0 +1,57 @@
+@startuml diagrama_atividades
+title SentinelTrade - Diagrama de Atividades\nEnviar Ordem de Compra/Venda
+
+|Investidor|
+start
+:Acessar a plataforma;
+
+|Keycloak|
+:Exibir tela de login;
+
+|Investidor|
+:Informar senha e código MFA;
+
+|Keycloak|
+if (Login válido?) then (não)
+  :Exibir mensagem de erro;
+  stop
+else (sim)
+  :Emitir token de acesso;
+endif
+
+|Investidor|
+:Consultar cotação do ativo;
+:Preencher e enviar ordem\n(ativo, compra/venda, quantidade);
+
+|Sistema|
+if (Ordem duplicada?) then (sim)
+  :Ignorar envio repetido;
+  stop
+else (não)
+endif
+:Salvar ordem como CRIADA;
+:Validar mercado aberto, saldo/posição\ne limite de risco;
+
+if (Ordem válida?) then (não)
+  :Marcar ordem como REJEITADA;
+else (sim)
+  :Enviar ordem à Bolsa Simulada;
+  |Bolsa Simulada|
+  :Processar ordem;
+  |Sistema|
+  if (Executada?) then (sim)
+    :Marcar ordem como EXECUTADA;
+    :Atualizar saldo e carteira;
+  else (não)
+    :Marcar ordem como REJEITADA;
+  endif
+endif
+
+:Registrar log de auditoria;
+:Notificar investidor;
+
+|Investidor|
+:Ver resultado da ordem;
+stop
+
+@enduml

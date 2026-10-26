@@ -1,0 +1,62 @@
+@startuml diagrama_classes_analise
+title SentinelTrade - Diagrama de Classes de Análise
+
+hide circle
+hide empty methods
+hide empty fields
+
+class Usuario {
+  nome
+  email
+  perfil
+}
+
+class Conta {
+  saldo
+  limiteRisco
+  bloqueada
+}
+
+class Posicao {
+  quantidade
+  precoMedio
+}
+
+class Ativo {
+  ticker
+  nome
+  precoAtual
+}
+
+class Ordem {
+  tipo
+  quantidade
+  preco
+  status
+  dataHora
+}
+
+class LogAuditoria {
+  acao
+  detalhes
+  dataHora
+}
+
+class Notificacao {
+  mensagem
+  lida
+  dataHora
+}
+
+class BolsaSimulada <<externo>>
+
+Usuario "1" -- "1" Conta : possui >
+Conta "1" *-- "0..*" Posicao : carteira >
+Posicao "0..*" -- "1" Ativo : refere-se a >
+Conta "1" -- "0..*" Ordem : envia >
+Ordem "0..*" -- "1" Ativo : negocia >
+Ordem "0..*" -- "1" BolsaSimulada : executada por >
+Usuario "1" -- "0..*" Notificacao : recebe >
+Usuario "1" -- "0..*" LogAuditoria : gera >
+
+@enduml

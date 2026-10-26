@@ -1,0 +1,23 @@
+@startuml diagrama_estados
+title SentinelTrade - Diagrama de Estados\nCiclo de Vida da Ordem
+
+hide empty description
+
+[*] --> Criada : investidor envia ordem
+
+Criada --> Rejeitada : validação reprovada
+Criada --> Enviada : validação aprovada /\nenviar à Bolsa
+
+Enviada --> Executada : Bolsa executa
+Enviada --> Rejeitada : Bolsa rejeita
+Enviada --> Cancelada : investidor cancela
+Enviada --> Falha : erro de comunicação
+
+Executada --> [*]
+Rejeitada --> [*]
+Cancelada --> [*]
+Falha --> [*]
+
+note bottom of Falha : Toda mudança gera log e notificação
+
+@enduml

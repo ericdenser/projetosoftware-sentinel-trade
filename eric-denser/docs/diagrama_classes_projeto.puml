@@ -1,0 +1,157 @@
+@startuml diagrama_classes_projeto
+title SentinelTrade - Diagrama de Classes de Projeto\n(arquitetura em camadas)
+
+hide empty members
+
+package "Controller" {
+  class OrdemController {
+    - ordemService: OrdemService
+    + criar(dto: OrdemDTO, chaveIdempotencia: String): Ordem
+    + cancelar(id: int): void
+    + listar(contaId: int): List<Ordem>
+  }
+}
+
+package "Service" {
+  class OrdemService {
+    - ordemRepository: OrdemRepository
+    - contaRepository: ContaRepository
+    - bolsa: BolsaSimuladaClient
+    + enviarOrdem(dto: OrdemDTO, chaveIdempotencia: String): Ordem
+    + cancelarOrdem(id: int): void
+    - validar(ordem: Ordem, conta: Conta): boolean
+    - registrarLog(usuarioId: int, acao: String): void
+    - notificar(usuarioId: int, mensagem: String): void
+  }
+}
+
+package "Repository" {
+  interface OrdemRepository {
+    + salvar(ordem: Ordem): Ordem
+    + buscarPorId(id: int): Ordem
+    + buscarPorChave(chaveIdempotencia: String): Ordem
+    + listarPorConta(contaId: int): List<Ordem>
+  }
+
+  interface ContaRepository {
+    + salvar(conta: Conta): Conta
+    + buscarPorId(id: int): Conta
+  }
+}
+
+package "Integração" {
+  class BolsaSimuladaClient {
+    + enviar(ordem: Ordem): StatusOrdem
+  }
+}
+
+package "Model (Entidades)" {
+  enum Perfil {
+    INVESTIDOR
+    ADMIN
+  }
+
+  enum TipoOrdem {
+    COMPRA
+    VENDA
+  }
+
+  enum StatusOrdem {
+    CRIADA
+    ENVIADA
+    EXECUTADA
+    REJEITADA
+    CANCELADA
+    FALHA
+  }
+
+  class Usuario {
+    - id: int
+    - keycloakId: String
+    - nome: String
+    - email: String
+    - perfil: Perfil
+  }
+
+  class Conta {
+    - id: int
+    - usuarioId: int <<FK>>
+    - saldo: decimal
+    - limiteRisco: decimal
+    - bloqueada: boolean
+    + temSaldo(valor: decimal): boolean
+    + debitar(valor: decimal): void
+    + creditar(valor: decimal): void
+  }
+
+  class Posicao {
+    - id: int
+    - contaId: int <<FK>>
+    - ativoId: int <<FK>>
+    - quantidade: int
+    - precoMedio: decimal
+  }
+
+  class Ativo {
+    - id: int
+    - ticker: String
+    - nome: String
+    - precoAtual: decimal
+  }
+
+  class Ordem {
+    - id: int
+    - contaId: int <<FK>>
+    - ativoId: int <<FK>>
+    - chaveIdempotencia: String
+    - tipo: TipoOrdem
+    - quantidade: int
+    - preco: decimal
+    - status: StatusOrdem
+    - criadaEm: DateTime
+    + valorTotal(): decimal
+    + cancelar(): void
+  }
+
+  class LogAuditoria {
+    - id: int
+    - usuarioId: int <<FK>>
+    - acao: String
+    - detalhes: String
+    - dataHora: DateTime
+  }
+
+  class Notificacao {
+    - id: int
+    - usuarioId: int <<FK>>
+    - mensagem: String
+    - lida: boolean
+    - dataHora: DateTime
+  }
+}
+
+note top of Usuario : Login e MFA via Keycloak
+
+' Camadas
+OrdemController --> OrdemService
+OrdemService --> OrdemRepository
+OrdemService --> ContaRepository
+OrdemService --> BolsaSimuladaClient
+OrdemService ..> LogAuditoria : cria
+OrdemService ..> Notificacao : cria
+OrdemRepository ..> Ordem
+ContaRepository ..> Conta
+
+' Entidades
+Usuario "1" -- "1" Conta
+Usuario "1" -- "0..*" LogAuditoria
+Usuario "1" -- "0..*" Notificacao
+Conta "1" *-- "0..*" Posicao
+Conta "1" -- "0..*" Ordem
+Posicao "0..*" --> "1" Ativo
+Ordem "0..*" --> "1" Ativo
+Usuario ..> Perfil
+Ordem ..> TipoOrdem
+Ordem ..> StatusOrdem
+
+@enduml
